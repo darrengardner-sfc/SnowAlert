@@ -4,11 +4,10 @@ import importlib
 import json
 import datetime
 import uuid
-from runners import utils
 
 from .config import CLOUDWATCH_METRICS
 from .helpers import db, log
-from .utils import apply_some
+from .utils import apply_some, json_dumps
 
 
 def log_alerts(ctx, alerts):
@@ -74,13 +73,13 @@ def get_new_alerts(ctx):
     return results
 
 
-def record_status(response, alert_id):
+def record_status(results, alert_id):
     query = f"UPDATE results.alerts SET handled=%s WHERE alert:ALERT_ID='{alert_id}'"
     print('Updating alert table:', query)
     try:
-        db.execute(query, params=str(response))
+        db.execute(query, params=json_dumps(results))
     except Exception as e:
-        log.error(e, f"Failed to update alert {alert_id} with status {response}")
+        log.error(e, f"Failed to update alert {alert_id} with {results}")
 
 
 def main():
@@ -112,7 +111,7 @@ def main():
             except Exception as e:
                 result = {
                     'success': False,
-                    'details': utils.json_dumps(e),
+                    'details': e,
                 }
 
             results.append(result)
